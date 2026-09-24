@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# DistroHop CLI Entrypoint
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MODULES_DIR="$SCRIPT_DIR/modules"
+
+source "$MODULES_DIR/detect_os.sh"
+source "$MODULES_DIR/backup_packages.sh"
+source "$MODULES_DIR/backup_browsers.sh"
+source "$MODULES_DIR/backup_chat.sh"
+source "$MODULES_DIR/restore_packages.sh"
+source "$MODULES_DIR/restore_sessions.sh"
+
+detect_os_family
+
+show_help() {
+    echo "DistroHop - Zero-ReLogin Linux State & Session Migrator"
+    echo ""
+    echo "Penggunaan:"
+    echo "  $0 backup [output_file.tar.zst]    Buat snapshot lengkap session & data"
+    echo "  $0 restore <backup_file.tar.zst>   Restore seluruh session & auto-install paket"
+    echo "  $0 info                            Lihat ringkasan OS & komponen yang terdeteksi"
+    echo ""
+}
+
+cmd_info() {
+    echo "=== INFORMASI SISTEM ==="
+    echo "OS        : $OS_NAME ($OS_ID)"
+    echo "Family    : $FAMILY"
+    echo "Pkg Mgr   : $PKG_MGR"
+    echo ""
+    echo "=== KOMPONEN YANG TERDETEKSI ==="
+    [ -d "$HOME/.mozilla/firefox" ] && echo "[x] Firefox"
+    [ -d "$HOME/.config/google-chrome" ] && echo "[x] Google Chrome"
+    [ -d "$HOME/.config/BraveSoftware/Brave-Browser" ] && echo "[x] Brave Browser"
+    [ -d "$HOME/.local/share/TelegramDesktop/tdata" ] && echo "[x] Telegram Desktop (Auto-Login)"
+    [ -d "$HOME/.config/discord" ] && echo "[x] Discord"
+    [ -d "$HOME/.ssh" ] && echo "[x] SSH Keys"
+    [ -d "$HOME/.hermes" ] && echo "[x] Hermes AI Agent"
+    [ -d "$HOME/.9router" ] && echo "[x] 9Router AI Gateway"
+    echo ""
+}
+
+cmd_backup() {
+    local out_file="${1:-$HOME/distrohop_backup_$(date +%Y%m%d_%H%M%S).tar.zst}"
+    local tmp_dir
+    tmp_dir="$(mktemp -d /tmp/distrohop_backup.XXXXXX)"
+
+    echo "=== MEMULAI BACKUP UNIVERSAL DISTROHOP ==="
+    echo "Target Output : $out_file"
+    echo ""
+
+    export_packages "$tmp_dir"
+    export_browsers "$tmp_dir"
+    export_sessions "$tmp_dir"
+
+    echo "  -> Mengompresi bundle dengan Zstandard (kecepatan & rasio tinggi)..."
+    if command -v zstd >/dev/null 2>&1; then
+        tar --zstd -cf "$out_file" -C "$tmp_dir" .
+    else
+        out_file="${out_file%.zst}.gz"
+        tar -czf "$out_file" -C "$tmp_dir" .
+    fi
+
+    rm -rf "$tmp_dir"
+    echo ""
+    echo "=== BACKUP SELESAI ==="
+    echo "File tersimpan di: $out_file"
+    echo "Pindahkan file ini ke flashdisk/drive eksternal sebelum ganti distro."
+}
+
+cmd_restore() {
+    local in_file="$1"
+    if [ -z "$in_file" ] || [ ! -f "$in_file" ]; then
+        echo "[ERROR] File backup tidak ditemukan: $in_file"
+        echo "Contoh: $0 restore /path/ke/distrohop_backup.tar.zst"
+        exit 1
+    fi
+
+    local tmp_dir
+    tmp_dir="$(mktemp -d /tmp/distrohop_restore.XXXXXX)"
+
+    echo "=== MEMULAI RESTORE UNIVERSAL DISTROHOP ==="
+    echo "Sumber Backup : $in_file"
+    echo "Target OS     : $OS_NAME ($FAMILY via $PKG_MGR)"
+    echo ""
+
+    echo "  -> Mengekstrak arsip backup..."
+    if [[ "$in_file" == *.zst ]]; then
+        tar --zstd -xf "$in_file" -C "$tmp_dir"
+    else
+        tar -xzf "$in_file" -C "$tmp_dir"
+    fi
+
+    install_manifests "$tmp_dir" "$FAMILY" "$PKG_MGR"
+    restore_all_sessions "$tmp_dir"
+
+    rm -rf "$tmp_dir"
+    echo ""
+    echo "=== RESTORE SELESAI 100% ==="
+    echo "Seluruh browser, Telegram, SSH keys, dan service AI sudah aktif kembali."
+}
+
+case "$1" in
+    backup)
+        cmd_backup "$2"
+        ;;
+    restore)
+        cmd_restore "$2"
+        ;;
+    info)
+        cmd_info
+        ;;
+    *)
+        show_help
+        ;;
+esac

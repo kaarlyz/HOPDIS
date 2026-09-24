@@ -1,0 +1,10 @@
+# Backup archives (jangan pernah push file backup pribadi)
+*.tar.gz
+*.tar.zst
+*.tar.xz
+*.tar
+*.bak
+
+# Temporary files
+/tmp/
+*.log
