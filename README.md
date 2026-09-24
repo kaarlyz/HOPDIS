@@ -1,54 +1,42 @@
-# 🚀 HOPDIS — Universal Linux State & Zero-ReLogin Migrator
+# 🚀 HOPDIS — Universal Linux & Windows-to-Linux Zero-ReLogin Migrator
 
-**HOPDIS** adalah tool migrasi otomatis untuk pengguna Linux dan *distro-hopper*:
-- 🚫 **Zero-ReLogin**: Sesi Telegram Desktop (`tdata`), Google Chrome, Brave, Firefox, Discord, dan SSH tetap login tanpa perlu scan QR / OTP lagi.
+**HOPDIS** adalah tool migrasi otomatis untuk pengguna Linux, *distro-hopper*, dan pengguna Windows yang ingin migrasi ke Linux tanpa rasa sakit:
+- 🚫 **Zero-ReLogin**: Sesi Telegram Desktop (`tdata`), Google Chrome, Brave, Firefox, Discord, dan SSH tetap aktif tanpa perlu scan QR / OTP ulang.
+- 🪟 **Windows-to-Linux Migration**: Dilengkapi modul PowerShell untuk migrasi profil browser, chat, dan mapping otomatis software Windows ke alternatif open-source Linux.
 - 🤖 **AI Stack Ready**: Mendukung penuh backup & restore **Hermes Agent, 9Router Gateway, Antigravity, OpenCode, Claude Code, Cursor, Ollama**.
 - 🔄 **Cross-Distro Detection**: Otomatis mendeteksi OS target (Debian/Ubuntu/Pop!_OS, Arch/Manjaro, Fedora, openSUSE) dan memasang package penunjang.
-- ⚡ **Auto-Discovery Engine**: Memindai seluruh folder `~/.config` dan `~/.local/share` untuk mengamankan konfigurasi aplikasi tersembunyi.
-- ⚙️ **Auto Systemd & Binary**: Mengaktifkan ulang user service (`gemini-bridge`, `hermes-gateway`, dsb) dan symlink `~/.local/bin`.
+- 🎛️ **Interactive TUI Selection**: Dialog interaktif untuk memilih komponen mana saja yang ingin dicadangkan.
 
 ---
 
-## 📦 Apa Saja yang Dimigrasikan?
+## 🪟 Cara Migrasi dari Windows ke Linux
 
-1. **Browser Sessions**: Chrome, Brave, Chromium, Firefox, LibreWolf (Cookies, Logins, Extensions, LocalStorage).
-2. **Chat & Communication**: Telegram Desktop (`tdata`), Discord, WhatsApp Linux, Slack, Signal, Thunderbird.
-3. **AI Agents & Developer Stack**:
-   - `~/.hermes/` (Skills, memory, sessions, configs)
-   - `~/.9router/` (Auth secret, token SQLite database, proxy runtime)
-   - `~/.config/antigravity` & `~/.local/share/antigravity`
-   - `~/.config/opencode` & `~/.local/share/opencode`
-   - Claude Code, Cursor, Ollama
-4. **Auth & Security**: SSH keys (`~/.ssh`), GPG, Git config, GitHub CLI, Linux Keyrings (GNOME/KDE Vault), Ngrok, Cloudflared.
-5. **Software Manifest**: Catatan lengkap package manager (APT / Pacman / DNF / Flatpak / Snap / NPM global / Pip).
-6. **System & Shell**: Systemd user services, `~/.local/bin`, `.bashrc`, `.zshrc`, `.profile`.
+1. Di komputer Windows, jalankan file PowerShell di folder `windows/`:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\windows\hop-export.ps1
+   ```
+2. File `hopdis_windows_migration_*.zip` akan dibuat secara otomatis.
+3. Salin file `.zip` tersebut ke sistem Linux baru Anda, lalu jalankan:
+   ```bash
+   ./restore.sh hopdis_windows_migration_*.zip
+   ```
+4. HOPDIS akan otomatis:
+   - Memetakan dan menginstal alternatif aplikasi Windows (contoh: Microsoft Office ➔ LibreOffice, Notepad++ ➔ Kate, dsb).
+   - Memulihkan sesi Chrome, Brave, Firefox, dan Telegram.
+   - Menata hak akses kunci SSH ke standar keamanan Linux (`chmod 600`).
 
 ---
 
-## 🚀 Cara Penggunaan
+## 🐧 Cara Penggunaan Antar-Distro Linux
 
-### 1. Di Distro Lama (Buat Backup)
-Jalankan satu perintah ini:
+### 1. Backup di Distro Lama
 ```bash
 ./backup.sh
-# atau
-./bin/hop backup
+# Atau tanpa dialog TUI:
+./backup.sh --all
 ```
-File arsip terkompresi `distrohop_backup_YYYYMMDD_HHMMSS.tar.zst` (atau `.tar.gz`) akan tersimpan di folder ini.
 
----
-
-### 2. Di Distro Baru (Restore Semuanya)
-Pindahkan file backup ke distro baru, lalu jalankan:
+### 2. Restore di Distro Baru
 ```bash
 ./restore.sh distrohop_backup_*.tar.zst
-# atau
-./bin/hop restore distrohop_backup_*.tar.zst
 ```
-
-Semua software esensial akan diinstall, seluruh session login dan AI agents langsung hidup kembali tanpa perlu login ulang satu pun!
-
----
-
-## 🛡️ Keamanan
-File archive backup diabaikan oleh `.gitignore` sehingga aman dari risiko tidak sengaja ter-push ke GitHub publik.

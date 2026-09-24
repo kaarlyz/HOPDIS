@@ -11,6 +11,7 @@ source "$MODULES_DIR/backup_browsers.sh"
 source "$MODULES_DIR/backup_chat.sh"
 source "$MODULES_DIR/restore_packages.sh"
 source "$MODULES_DIR/restore_sessions.sh"
+source "$MODULES_DIR/restore_windows.sh"
 source "$MODULES_DIR/tui_menu.sh"
 
 detect_os_family
@@ -89,6 +90,7 @@ run_restore() {
     fi
 
     local temp_extract="/tmp/distrohop_restore_temp"
+    rm -rf "$temp_extract"
     mkdir -p "$temp_extract"
 
     echo "=========================================================="
@@ -97,7 +99,9 @@ run_restore() {
     echo "=========================================================="
 
     echo "Mengekstrak arsip cadangan..."
-    if [[ "$archive_file" == *.tar.zst ]]; then
+    if [[ "$archive_file" == *.zip ]]; then
+        unzip -q "$archive_file" -d "$temp_extract"
+    elif [[ "$archive_file" == *.tar.zst ]]; then
         tar -I zstd -xf "$archive_file" -C "$temp_extract"
     else
         tar -xzf "$archive_file" -C "$temp_extract"
@@ -105,8 +109,14 @@ run_restore() {
 
     local bundle_dir
     bundle_dir="$(find "$temp_extract" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+    if [ -z "$bundle_dir" ] || [ ! -d "$bundle_dir/browsers" -a ! -d "$bundle_dir/sessions" ]; then
+        bundle_dir="$temp_extract"
+    fi
 
-    if [ -d "$bundle_dir/manifests" ]; then
+    # Check for Windows Migration Manifest
+    if [ -f "$bundle_dir/manifests/windows_installed_apps.txt" ]; then
+        map_windows_alternatives "$bundle_dir/manifests/windows_installed_apps.txt" "$OS_FAMILY" "$PKG_MGR"
+    elif [ -d "$bundle_dir/manifests" ]; then
         install_manifests "$bundle_dir" "$OS_FAMILY" "$PKG_MGR"
     fi
 
