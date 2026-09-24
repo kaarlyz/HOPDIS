@@ -41,6 +41,8 @@ source "$MODULES_DIR/backup_chat.sh"
 source "$MODULES_DIR/restore_packages.sh"
 source "$MODULES_DIR/restore_sessions.sh"
 source "$MODULES_DIR/restore_windows.sh"
+source "$MODULES_DIR/sanity_check.sh"
+source "$MODULES_DIR/cloud_sync.sh"
 source "$MODULES_DIR/tui_menu.sh"
 
 detect_os_family
@@ -51,6 +53,8 @@ show_help() {
     echo -e "\n${C_BOLD}CARA PENGGUNAAN:${C_RESET}"
     echo -e "  ${C_GREEN}./backup.sh${C_RESET} [output_dir] [--all]   ${C_DIM}→ Buat paket backup sesi & konfigurasi lengkap${C_RESET}"
     echo -e "  ${C_GREEN}./restore.sh${C_RESET} <file_backup>         ${C_DIM}→ Pulihkan sesi & software di distro baru${C_RESET}"
+    echo -e "  ${C_GREEN}./bin/hop check${C_RESET}                    ${C_DIM}→ Jalankan sanity report & cek integritas sistem${C_RESET}"
+    echo -e "  ${C_GREEN}./bin/hop cloud${C_RESET} <file> [remote]    ${C_DIM}→ Unggah arsip ke Cloud Storage (GDrive/OneDrive/Mega)${C_RESET}"
     echo -e "  ${C_GREEN}./bin/hop info${C_RESET}                     ${C_DIM}→ Cek status deteksi OS & aplikasi aktif${C_RESET}\n"
 }
 
@@ -158,8 +162,10 @@ run_restore() {
 
     rm -rf "$temp_extract"
     echo -e "\n${C_GREEN}${C_BOLD}══════════════════════════════════════════════════════════════════════${C_RESET}"
-    echo -e "${C_GREEN}${C_BOLD}🎉 RESTORISASI SELESAI 100%! SEMUA SESI & APLIKASI TELAH AKTIF.${C_RESET}"
+    echo -e "${C_GREEN}${C_BOLD}🎉 RESTORISASI SELESAI 100%! MENJALANKAN SANITY CHECK...${C_RESET}"
     echo -e "${C_GREEN}${C_BOLD}══════════════════════════════════════════════════════════════════════${C_RESET}\n"
+
+    run_sanity_check
 }
 
 case "$1" in
@@ -168,6 +174,14 @@ case "$1" in
         ;;
     restore)
         run_restore "$2"
+        ;;
+    check)
+        print_banner
+        run_sanity_check
+        ;;
+    cloud)
+        print_banner
+        sync_to_cloud "$2" "$3"
         ;;
     info)
         print_banner
