@@ -53,8 +53,8 @@ show_help() {
     echo -e "\n${C_BOLD}CARA PENGGUNAAN:${C_RESET}"
     echo -e "  ${C_GREEN}./backup.sh${C_RESET} [output_dir] [--all]   ${C_DIM}→ Buat paket backup sesi & konfigurasi lengkap${C_RESET}"
     echo -e "  ${C_GREEN}./restore.sh${C_RESET} <file_backup>         ${C_DIM}→ Pulihkan sesi & software di distro baru${C_RESET}"
+    echo -e "  ${C_GREEN}./bin/hop cloud${C_RESET}                    ${C_DIM}→ Menu interaktif Cloud Storage (Google Drive Uploader/Downloader)${C_RESET}"
     echo -e "  ${C_GREEN}./bin/hop check${C_RESET}                    ${C_DIM}→ Jalankan sanity report & cek integritas sistem${C_RESET}"
-    echo -e "  ${C_GREEN}./bin/hop cloud${C_RESET} <file> [remote]    ${C_DIM}→ Unggah arsip ke Cloud Storage (GDrive/OneDrive/Mega)${C_RESET}"
     echo -e "  ${C_GREEN}./bin/hop info${C_RESET}                     ${C_DIM}→ Cek status deteksi OS & aplikasi aktif${C_RESET}\n"
 }
 
@@ -113,6 +113,13 @@ run_backup() {
         echo -e "${C_GREEN}${C_BOLD}✔ SUKSES! File arsip cadangan siap dipindahkan:${C_RESET}"
         echo -e "  ${C_BOLD}Lokasi :${C_RESET} ${C_CYAN}$archive_path${C_RESET}"
         echo -e "  ${C_BOLD}Ukuran :${C_RESET} ${C_MAGENTA}$file_size${C_RESET}\n"
+
+        # Ask for cloud upload if interactive
+        if command -v whiptail >/dev/null 2>&1 && [ -t 0 ] && [ "$force_all" != "--all" ]; then
+            if whiptail --title "Upload ke Cloud Storage" --yesno "Apakah Anda ingin mengunggah file backup ini langsung ke Google Drive / Cloud Storage?" 10 65; then
+                interactive_cloud_menu
+            fi
+        fi
     else
         echo -e "${C_RED}✖ Terjadi kesalahan saat membuat file arsip.${C_RESET}"
         exit 1
@@ -121,6 +128,16 @@ run_backup() {
 
 run_restore() {
     local archive_file="$1"
+    if [ -z "$archive_file" ] || [ ! -f "$archive_file" ]; then
+        # Check if user wants to download from cloud
+        if command -v whiptail >/dev/null 2>&1 && [ -t 0 ]; then
+            if whiptail --title "File Tidak Ditemukan" --yesno "File backup lokal tidak ditemukan.\n\nApakah Anda ingin mengunduhnya dari Google Drive / Cloud Storage?" 12 60; then
+                interactive_cloud_menu
+                archive_file="$(find "$SCRIPT_DIR" -maxdepth 1 -name "distrohop_backup_*.tar.*" -o -name "hopdis_windows_migration_*.zip" 2>/dev/null | sort -r | head -n 1)"
+            fi
+        fi
+    fi
+
     if [ -z "$archive_file" ] || [ ! -f "$archive_file" ]; then
         print_banner
         echo -e "${C_RED}✖ Error: File arsip backup tidak ditemukan!${C_RESET}"
@@ -181,7 +198,7 @@ case "$1" in
         ;;
     cloud)
         print_banner
-        sync_to_cloud "$2" "$3"
+        interactive_cloud_menu
         ;;
     info)
         print_banner
