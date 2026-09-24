@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DistroHop CLI Entrypoint
+# HOPDIS CLI Engine
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,106 +11,135 @@ source "$MODULES_DIR/backup_browsers.sh"
 source "$MODULES_DIR/backup_chat.sh"
 source "$MODULES_DIR/restore_packages.sh"
 source "$MODULES_DIR/restore_sessions.sh"
+source "$MODULES_DIR/tui_menu.sh"
 
 detect_os_family
+eval "$(detect_os_family)"
 
 show_help() {
-    echo "DistroHop - Zero-ReLogin Linux State & Session Migrator"
+    echo "Usage: hop [command] [options]"
     echo ""
-    echo "Penggunaan:"
-    echo "  $0 backup [output_file.tar.zst]    Buat snapshot lengkap session & data"
-    echo "  $0 restore <backup_file.tar.zst>   Restore seluruh session & auto-install paket"
-    echo "  $0 info                            Lihat ringkasan OS & komponen yang terdeteksi"
+    echo "Commands:"
+    echo "  backup [output_dir]   Buat paket migrasi state & sessions lengkap"
+    echo "  restore <archive>     Pulihkan state, sessions, & dependensi di distro baru"
+    echo "  info                  Tampilkan informasi deteksi OS & modul aktif"
     echo ""
+    echo "Options:"
+    echo "  --all, -a             Backup seluruh komponen tanpa memunculkan menu TUI"
+    echo "  --help, -h            Tampilkan bantuan ini"
 }
 
-cmd_info() {
-    echo "=== INFORMASI SISTEM ==="
-    echo "OS        : $OS_NAME ($OS_ID)"
-    echo "Family    : $FAMILY"
-    echo "Pkg Mgr   : $PKG_MGR"
-    echo ""
-    echo "=== KOMPONEN YANG TERDETEKSI ==="
-    [ -d "$HOME/.mozilla/firefox" ] && echo "[x] Firefox"
-    [ -d "$HOME/.config/google-chrome" ] && echo "[x] Google Chrome"
-    [ -d "$HOME/.config/BraveSoftware/Brave-Browser" ] && echo "[x] Brave Browser"
-    [ -d "$HOME/.local/share/TelegramDesktop/tdata" ] && echo "[x] Telegram Desktop (Auto-Login)"
-    [ -d "$HOME/.config/discord" ] && echo "[x] Discord"
-    [ -d "$HOME/.ssh" ] && echo "[x] SSH Keys"
-    [ -d "$HOME/.hermes" ] && echo "[x] Hermes AI Agent"
-    [ -d "$HOME/.9router" ] && echo "[x] 9Router AI Gateway"
-    echo ""
-}
+run_backup() {
+    local out_dir="${1:-$SCRIPT_DIR}"
+    local force_all="$2"
+    local timestamp
+    timestamp="$(date +%Y%m%d_%H%M%S)"
+    local bundle_name="distrohop_backup_${timestamp}"
+    local temp_dir="/tmp/${bundle_name}"
 
-cmd_backup() {
-    local out_file="${1:-$HOME/distrohop_backup_$(date +%Y%m%d_%H%M%S).tar.zst}"
-    local tmp_dir
-    tmp_dir="$(mktemp -d /tmp/distrohop_backup.XXXXXX)"
+    mkdir -p "$temp_dir" "$out_dir"
 
-    echo "=== MEMULAI BACKUP UNIVERSAL DISTROHOP ==="
-    echo "Target Output : $out_file"
-    echo ""
-
-    export_packages "$tmp_dir"
-    export_browsers "$tmp_dir"
-    export_sessions "$tmp_dir"
-
-    echo "  -> Mengompresi bundle dengan Zstandard (kecepatan & rasio tinggi)..."
-    if command -v zstd >/dev/null 2>&1; then
-        tar --zstd -cf "$out_file" -C "$tmp_dir" .
+    local selected_components
+    if [ "$force_all" = "--all" ] || [ "$force_all" = "-a" ]; then
+        selected_components='"PACKAGES" "BROWSERS" "CHAT" "AI_STACK" "DEV_KEYS" "DESKTOP"'
     else
-        out_file="${out_file%.zst}.gz"
-        tar -czf "$out_file" -C "$tmp_dir" .
+        selected_components="$(select_backup_components)"
     fi
 
-    rm -rf "$tmp_dir"
-    echo ""
-    echo "=== BACKUP SELESAI ==="
-    echo "File tersimpan di: $out_file"
-    echo "Pindahkan file ini ke flashdisk/drive eksternal sebelum ganti distro."
+    echo "=========================================================="
+    echo "🚀 HOPDIS — MEMULAI PROSES CADANGAN (BACKUP)"
+    echo "=========================================================="
+
+    if echo "$selected_components" | grep -q "PACKAGES"; then
+        export_packages "$temp_dir"
+    fi
+
+    if echo "$selected_components" | grep -q "BROWSERS"; then
+        export_browsers "$temp_dir"
+    fi
+
+    if echo "$selected_components" | grep -q "CHAT" || echo "$selected_components" | grep -q "AI_STACK" || echo "$selected_components" | grep -q "DEV_KEYS" || echo "$selected_components" | grep -q "DESKTOP"; then
+        export_all_discovered_sessions "$temp_dir"
+    fi
+
+    echo "=== [3/3] MENGOMPRES SELURUH DATA STATE ==="
+    local archive_path
+    if command -v zstd >/dev/null 2>&1; then
+        archive_path="${out_dir}/${bundle_name}.tar.zst"
+        tar -I 'zstd -19 -T0' -cf "$archive_path" -C "/tmp" "$bundle_name"
+    else
+        archive_path="${out_dir}/${bundle_name}.tar.gz"
+        tar -czf "$archive_path" -C "/tmp" "$bundle_name"
+    fi
+
+    rm -rf "$temp_dir"
+    echo "=========================================================="
+    echo "✅ BACKUP BERHASIL DISELESAIKAN!"
+    echo "Lokasi File: $archive_path"
+    echo "Ukuran File: $(du -h "$archive_path" | cut -f1)"
+    echo "=========================================================="
 }
 
-cmd_restore() {
-    local in_file="$1"
-    if [ -z "$in_file" ] || [ ! -f "$in_file" ]; then
-        echo "[ERROR] File backup tidak ditemukan: $in_file"
-        echo "Contoh: $0 restore /path/ke/distrohop_backup.tar.zst"
+run_restore() {
+    local archive_file="$1"
+    if [ -z "$archive_file" ] || [ ! -f "$archive_file" ]; then
+        echo "Error: File arsip backup tidak ditemukan."
+        echo "Contoh: ./restore.sh distrohop_backup_20260924_190000.tar.zst"
         exit 1
     fi
 
-    local tmp_dir
-    tmp_dir="$(mktemp -d /tmp/distrohop_restore.XXXXXX)"
+    local temp_extract="/tmp/distrohop_restore_temp"
+    mkdir -p "$temp_extract"
 
-    echo "=== MEMULAI RESTORE UNIVERSAL DISTROHOP ==="
-    echo "Sumber Backup : $in_file"
-    echo "Target OS     : $OS_NAME ($FAMILY via $PKG_MGR)"
-    echo ""
+    echo "=========================================================="
+    echo "🔄 HOPDIS — MEMULAI RESTORISASI LENGKAP"
+    echo "Distro Target: $OS_NAME ($OS_FAMILY) | Package Mgr: $PKG_MGR"
+    echo "=========================================================="
 
-    echo "  -> Mengekstrak arsip backup..."
-    if [[ "$in_file" == *.zst ]]; then
-        tar --zstd -xf "$in_file" -C "$tmp_dir"
+    echo "Mengekstrak arsip cadangan..."
+    if [[ "$archive_file" == *.tar.zst ]]; then
+        tar -I zstd -xf "$archive_file" -C "$temp_extract"
     else
-        tar -xzf "$in_file" -C "$tmp_dir"
+        tar -xzf "$archive_file" -C "$temp_extract"
     fi
 
-    install_manifests "$tmp_dir" "$FAMILY" "$PKG_MGR"
-    restore_all_sessions "$tmp_dir"
+    local bundle_dir
+    bundle_dir="$(find "$temp_extract" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
 
-    rm -rf "$tmp_dir"
-    echo ""
-    echo "=== RESTORE SELESAI 100% ==="
-    echo "Seluruh browser, Telegram, SSH keys, dan service AI sudah aktif kembali."
+    if [ -d "$bundle_dir/manifests" ]; then
+        install_manifests "$bundle_dir" "$OS_FAMILY" "$PKG_MGR"
+    fi
+
+    restore_all_sessions "$bundle_dir"
+
+    rm -rf "$temp_extract"
+    echo "=========================================================="
+    echo "🎉 RESTORE SELESAI 100%! SEMUA SESI TELAH DIPULIHKAN."
+    echo "=========================================================="
 }
 
 case "$1" in
     backup)
-        cmd_backup "$2"
+        run_backup "$2" "$3"
         ;;
     restore)
-        cmd_restore "$2"
+        run_restore "$2"
         ;;
     info)
-        cmd_info
+        echo "=== INFORMASI SISTEM ==="
+        echo "OS        : $OS_NAME ($OS_ID)"
+        echo "Family    : $OS_FAMILY"
+        echo "Pkg Mgr   : $PKG_MGR"
+        echo ""
+        echo "=== KOMPONEN YANG TERDETEKSI ==="
+        [ -d "$HOME/.mozilla/firefox" ] && echo "[x] Firefox"
+        [ -d "$HOME/.config/google-chrome" ] && echo "[x] Google Chrome"
+        [ -d "$HOME/.config/BraveSoftware" ] && echo "[x] Brave Browser"
+        [ -d "$HOME/.local/share/TelegramDesktop/tdata" ] && echo "[x] Telegram Desktop"
+        [ -d "$HOME/.hermes" ] && echo "[x] Hermes AI Agent"
+        [ -d "$HOME/.9router" ] && echo "[x] 9Router AI Gateway"
+        [ -d "$HOME/.local/share/antigravity" ] && echo "[x] Antigravity CLI"
+        [ -d "$HOME/.local/share/opencode" ] && echo "[x] OpenCode CLI"
         ;;
     *)
         show_help
