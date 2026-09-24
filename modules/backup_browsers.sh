@@ -1,51 +1,59 @@
 #!/usr/bin/env bash
-# Module: Browser Profiles & Sessions Exporter
+# Module: Browser Profiles & Sessions Exporter with Cache Exclusion
 
 export_browsers() {
     local target_dir="$1/browsers"
     mkdir -p "$target_dir"
 
-    echo "  -> Memindai profile & login session browser..."
+    echo "  -> Memindai profile & login session browser (tanpa cache sampah)..."
 
-    # 1. Firefox & Librewolf
+    # Chromium-based (Chrome, Brave, Chromium, Edge, Vivaldi)
+    local chrome_dirs=(
+        "$HOME/.config/google-chrome"
+        "$HOME/.config/BraveSoftware/Brave-Browser"
+        "$HOME/.config/chromium"
+        "$HOME/.config/microsoft-edge"
+        "$HOME/.config/vivaldi"
+    )
+
+    for cdir in "${chrome_dirs[@]}"; do
+        if [ -d "$cdir" ]; then
+            local bname="$(basename "$cdir")"
+            echo "     - Ditemukan: $bname"
+            mkdir -p "$target_dir/$bname"
+            rsync -a --delete \
+                --exclude="Cache" \
+                --exclude="Code Cache" \
+                --exclude="GPUCache" \
+                --exclude="Service Worker/CacheStorage" \
+                --exclude="GrShaderCache" \
+                --exclude="ShaderCache" \
+                --exclude="*.tmp" \
+                "$cdir/" "$target_dir/$bname/" 2>/dev/null || cp -r "$cdir" "$target_dir/$bname"
+        fi
+    done
+
+    # Firefox / LibreWolf
     if [ -d "$HOME/.mozilla/firefox" ]; then
         echo "     - Ditemukan: Mozilla Firefox"
         mkdir -p "$target_dir/firefox"
-        rsync -a --exclude="cache2" --exclude="jumpListCache" --exclude="startupCache" \
-            "$HOME/.mozilla/firefox/" "$target_dir/firefox/" 2>/dev/null || true
+        rsync -a --delete \
+            --exclude="cache2" \
+            --exclude="startupCache" \
+            --exclude="shader-cache" \
+            --exclude="jumpListCache" \
+            --exclude="*.tmp" \
+            "$HOME/.mozilla/firefox/" "$target_dir/firefox/" 2>/dev/null || cp -r "$HOME/.mozilla/firefox" "$target_dir/"
     fi
 
     if [ -d "$HOME/.librewolf" ]; then
         echo "     - Ditemukan: LibreWolf"
         mkdir -p "$target_dir/librewolf"
-        rsync -a --exclude="cache2" "$HOME/.librewolf/" "$target_dir/librewolf/" 2>/dev/null || true
+        rsync -a --delete \
+            --exclude="cache2" \
+            --exclude="startupCache" \
+            "$HOME/.librewolf/" "$target_dir/librewolf/" 2>/dev/null || cp -r "$HOME/.librewolf" "$target_dir/"
     fi
-
-    # 2. Chromium-based browsers (Google Chrome, Brave, Chromium, Edge, Vivaldi)
-    local chromium_paths=(
-        "google-chrome:$HOME/.config/google-chrome"
-        "brave:$HOME/.config/BraveSoftware/Brave-Browser"
-        "chromium:$HOME/.config/chromium"
-        "microsoft-edge:$HOME/.config/microsoft-edge"
-        "vivaldi:$HOME/.config/vivaldi"
-    )
-
-    for item in "${chromium_paths[@]}"; do
-        local name="${item%%:*}"
-        local path="${item##*:}"
-        if [ -d "$path" ]; then
-            echo "     - Ditemukan: $name"
-            mkdir -p "$target_dir/$name"
-            # Exclude cache berat tapi simpan data login, cookies, profile, extensions
-            rsync -a \
-                --exclude="*/Cache/*" \
-                --exclude="*/Code Cache/*" \
-                --exclude="*/GPUCache/*" \
-                --exclude="*/Service Worker/CacheStorage/*" \
-                --exclude="*/GrShaderCache/*" \
-                "$path/" "$target_dir/$name/" 2>/dev/null || true
-        fi
-    done
 
     echo "  [OK] Profile browser berhasil disalin."
 }
