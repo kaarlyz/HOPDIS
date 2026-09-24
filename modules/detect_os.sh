@@ -32,4 +32,6 @@ detect_os_family() {
         PKG_MGR="unknown"
         FAMILY="unknown"
     fi
+
+    OS_FAMILY="$FAMILY"
 }
