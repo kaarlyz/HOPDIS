@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Module: Universal Auto-Discovery & Dynamic State Exporter
+# Module: Universal Auto-Discovery & Dynamic State Exporter (Fully Comprehensive)
 
 export_all_discovered_sessions() {
     local target_dir="$1/sessions"
@@ -15,11 +15,15 @@ export_all_discovered_sessions() {
         "9router:$HOME/.9router"
         "opencode_config:$HOME/.config/opencode"
         "opencode_share:$HOME/.local/share/opencode"
+        "opencode_dot:$HOME/.opencode"
         "antigravity_config:$HOME/.config/antigravity"
         "antigravity_share:$HOME/.local/share/antigravity"
         "claude_config:$HOME/.config/claude"
         "claude_code:$HOME/.claude"
-        "codex:$HOME/.codex"
+        "copilot:$HOME/.copilot"
+        "gemini:$HOME/.gemini"
+        "tv_mcp:$HOME/.tv-mcp"
+        "cua_driver:$HOME/.cua-driver"
         "cursor:$HOME/.config/Cursor"
         "continue:$HOME/.continue"
         "ollama:$HOME/.ollama"
@@ -44,6 +48,7 @@ export_all_discovered_sessions() {
         "TelegramDesktop:$HOME/.local/share/TelegramDesktop/tdata"
         "discord:$HOME/.config/discord"
         "betterdiscord:$HOME/.config/BetterDiscord"
+        "whatsie:$HOME/.var/app/com.ktechpit.whatsie"
         "whatsapp_linux:$HOME/.config/whatsapp-for-linux"
         "slack:$HOME/.config/Slack"
         "element:$HOME/.config/Element"
@@ -63,7 +68,7 @@ export_all_discovered_sessions() {
     done
 
     # -------------------------------------------------------------
-    # 3. DEV TOOLS, CLOUD, KREDENSIAL & KEYS
+    # 3. DEV TOOLS, CLOUD, KREDENSIAL, KEYS & EXTENSIONS
     # -------------------------------------------------------------
     local dev_targets=(
         "ssh:$HOME/.ssh"
@@ -72,12 +77,17 @@ export_all_discovered_sessions() {
         "gnupg:$HOME/.gnupg"
         "keyrings:$HOME/.local/share/keyrings"
         "pki:$HOME/.local/share/pki"
+        "bun:$HOME/.bun"
+        "vscode_dot:$HOME/.vscode"
+        "vscode_shared:$HOME/.vscode-shared"
+        "vscode_config:$HOME/.config/Code"
         "aws:$HOME/.aws"
         "docker:$HOME/.docker"
         "gcloud:$HOME/.config/gcloud"
         "kube:$HOME/.kube"
         "ngrok:$HOME/.config/ngrok"
         "cloudflared:$HOME/.cloudflared"
+        "tradingview_config:$HOME/.config/TradingView"
         "postman:$HOME/.config/Postman"
         "insomnia:$HOME/.config/Insomnia"
         "dbeaver:$HOME/.local/share/DBeaverData"
@@ -126,11 +136,10 @@ export_all_discovered_sessions() {
     find "$HOME/.config" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | while read -r d; do
         bname="$(basename "$d")"
         case "$bname" in
-            google-chrome|BraveSoftware|chromium|microsoft-edge|vivaldi|discord|opencode|systemd|gh|ngrok)
-                # Sudah di-handle modul khusus
+            google-chrome|BraveSoftware|chromium|microsoft-edge|vivaldi|discord|opencode|systemd|gh|ngrok|TradingView)
+                # Handled specifically
                 ;;
             *)
-                # Backup folder config aktif (kecuali cache berat)
                 rsync -a --exclude="*cache*" --exclude="*Cache*" --exclude="logs" "$d" "$target_dir/discovered_configs/" 2>/dev/null || true
                 ;;
         esac
