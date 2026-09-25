@@ -1,27 +1,25 @@
 #!/usr/bin/env bash
-# Module: Interactive TUI Menu Selector for HOPDIS
+# Module: Modern TUI Menu Selector for HOPDIS
 
 select_backup_components() {
-    # If whiptail is available and interactive terminal
     if command -v whiptail >/dev/null 2>&1 && [ -t 0 ]; then
         local choices
-        choices=$(whiptail --title "HOPDIS — Pilih Komponen Backup" \
-            --checklist "Gunakan SPACE untuk memilih/membatalkan, ENTER untuk konfirmasi:" 18 70 6 \
-            "PACKAGES" "Daftar Software & Manifest (APT/Pacman/Flatpak)" ON \
-            "BROWSERS" "Sesi & Profile Browser (Chrome/Brave/Firefox)" ON \
-            "CHAT"     "Sesi Chat & Messenger (Telegram tdata/Discord)" ON \
-            "AI_STACK" "AI Agents & Gateway (Hermes/9Router/Antigravity)" ON \
-            "DEV_KEYS" "SSH Keys, Git Config, GPG & Keyrings Vault" ON \
-            "DESKTOP"  "Systemd Services, Scripts bin & Shell Dotfiles" ON \
+        choices=$(whiptail --title "🚀 HOPDIS — PILIH KOMPONEN CADANGAN" \
+            --checklist "Gunakan SPACE untuk memilih modul, ENTER untuk melanjutkan:" 18 72 6 \
+            "PACKAGES" "Daftar Software & Manifest (APT/Pacman/Flatpak/NPM)" ON \
+            "BROWSERS" "Sesi & Profil Browser (Chrome/Brave/Firefox/Cookies)" ON \
+            "CHAT"     "Sesi Pesan & Chat (Telegram tdata/Discord/Whatsie)" ON \
+            "AI_STACK" "AI Agents & Gateway (Hermes/9Router/Antigravity/OpenCode)" ON \
+            "DEV_KEYS" "Kunci SSH, Git Config, GPG, VSCode & Keyrings Vault" ON \
+            "DESKTOP"  "Systemd User Services, Scripts ~/.local/bin & Dotfiles" ON \
             3>&1 1>&2 2>&3)
 
         if [ $? -ne 0 ]; then
-            echo "Backup dibatalkan oleh pengguna."
+            echo -e "\n\033[38;2;224;108;117m✖ Proses cadangan dibatalkan oleh pengguna.\033[0m\n"
             exit 0
         fi
         echo "$choices"
     else
-        # Non-interactive / headless fallback: select all
         echo '"PACKAGES" "BROWSERS" "CHAT" "AI_STACK" "DEV_KEYS" "DESKTOP"'
     fi
 }
