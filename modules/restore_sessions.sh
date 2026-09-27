@@ -107,5 +107,17 @@ restore_all_sessions() {
         rsync -a "$bundle_dir/sessions/discovered_configs/" "$HOME/.config/" 2>/dev/null || true
     fi
 
+    # 3. RESTORE DEV WORKSPACE & SSH KEYS
+    if [ -d "$bundle_dir/projects_and_keys" ]; then
+        echo "  -> Memulihkan Kunci SSH & Data Project (Documents)..."
+        cp -a "$bundle_dir/projects_and_keys/.ssh" "$HOME/" 2>/dev/null || true
+        cp -a "$bundle_dir/projects_and_keys/.gnupg" "$HOME/" 2>/dev/null || true
+        rsync -a "$bundle_dir/projects_and_keys/Documents/" "$HOME/Documents/" 2>/dev/null || true
+
+        # Perbaiki Permissions
+        chmod 700 "$HOME/.ssh" 2>/dev/null || true
+        chmod 600 "$HOME/.ssh/id_rsa" "$HOME/.ssh/id_ed25519" 2>/dev/null || true
+    fi
+
     echo "  [OK] Seluruh data & sesi sistem telah berhasil dipulihkan."
 }

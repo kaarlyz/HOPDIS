@@ -66,6 +66,7 @@ source "$MODULES_DIR/detect_os.sh"
 source "$MODULES_DIR/backup_packages.sh"
 source "$MODULES_DIR/backup_browsers.sh"
 source "$MODULES_DIR/backup_chat.sh"
+source "$MODULES_DIR/backup_projects.sh"
 source "$MODULES_DIR/restore_packages.sh"
 source "$MODULES_DIR/restore_sessions.sh"
 source "$MODULES_DIR/restore_windows.sh"
@@ -124,7 +125,8 @@ run_backup() {
     if echo "$selected_components" | grep -q "CHAT" || echo "$selected_components" | grep -q "AI_STACK" || echo "$selected_components" | grep -q "DEV_KEYS" || echo "$selected_components" | grep -q "DESKTOP"; then
         echo -e "${C_YELLOW}│${C_RESET}  ${C_CYAN}◆${C_RESET} [AI & Dev] Menyelamatkan Hermes, 9Router, Antigravity, SSH & Telegram tdata..."
         export_all_discovered_sessions "$temp_dir" >/dev/null 2>&1 || true
-        echo -e "${C_YELLOW}│${C_RESET}    ${C_GREEN}✔ Kunci enkripsi, AI memory, dan tdata sesi tersalin utuh${C_RESET}"
+        export_projects_and_keys "$temp_dir" >/dev/null 2>&1 || true
+        echo -e "${C_YELLOW}│${C_RESET}    ${C_GREEN}✔ Kunci enkripsi, SSH, AI memory, dan tdata sesi tersalin utuh${C_RESET}"
     fi
     echo -e "${C_YELLOW}╰────────────────────────────────────────────────────────────────────╯${C_RESET}\n"
 
