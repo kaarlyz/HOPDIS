@@ -19,6 +19,10 @@ run_sanity_check() {
 
     # 2. Check AI Core Agents (Hermes, Agy, 9Router) via Execution Test
     echo "  -> Menguji Binary AI Agents..."
+    
+    # Reload path biar tesnya bener
+    export PATH="$HOME/.local/bin:$HOME/.bun/bin:$HOME/.npm-global/bin:$PATH"
+
     if command -v hermes >/dev/null 2>&1; then
         echo -e "    [\033[0;32mOK\033[0m] Hermes Agent dapat dipanggil dari PATH."
     else

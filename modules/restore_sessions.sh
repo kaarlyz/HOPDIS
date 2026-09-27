@@ -84,7 +84,8 @@ restore_all_sessions() {
         echo "  -> Memulihkan binary scripts dan systemd user services..."
         if [ -d "$bundle_dir/sessions/system/local_bin" ]; then
             mkdir -p "$HOME/.local/bin"
-            rsync -a "$bundle_dir/sessions/system/local_bin/" "$HOME/.local/bin/"
+            # Jangan main rsync buta, abaikan symlink biar NPM global dan Agy gak rusak
+            rsync -a --no-links "$bundle_dir/sessions/system/local_bin/" "$HOME/.local/bin/"
             chmod +x "$HOME/.local/bin"/* 2>/dev/null || true
         fi
 
@@ -109,14 +110,9 @@ restore_all_sessions() {
 
     # 3. RESTORE DEV WORKSPACE & SSH KEYS
     if [ -d "$bundle_dir/projects_and_keys" ]; then
-        echo "  -> Memulihkan Kunci SSH & Data Project (Documents)..."
-        cp -a "$bundle_dir/projects_and_keys/.ssh" "$HOME/" 2>/dev/null || true
-        cp -a "$bundle_dir/projects_and_keys/.gnupg" "$HOME/" 2>/dev/null || true
+        echo "  -> Memulihkan Data Project (Documents)..."
+        # SSH & GPG udah direstore di Tahap 4 (Dev Tools), gaperlu overwrite lagi!
         rsync -a "$bundle_dir/projects_and_keys/Documents/" "$HOME/Documents/" 2>/dev/null || true
-
-        # Perbaiki Permissions
-        chmod 700 "$HOME/.ssh" 2>/dev/null || true
-        chmod 600 "$HOME/.ssh/id_rsa" "$HOME/.ssh/id_ed25519" 2>/dev/null || true
     fi
 
     echo "  [OK] Seluruh data & sesi sistem telah berhasil dipulihkan."

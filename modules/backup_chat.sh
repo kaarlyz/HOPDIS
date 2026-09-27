@@ -36,8 +36,15 @@ export_all_discovered_sessions() {
         if [ -d "$path" ] || [ -f "$path" ]; then
             echo "  [FOUND: AI Agent] $name -> $path"
             mkdir -p "$target_dir/ai/$name"
-            rsync -a --exclude="cache/*" --exclude="audio_cache/*" --exclude="sandbox_cache/*" --exclude="logs/*" \
-                "$path" "$target_dir/ai/$name/" 2>/dev/null || true
+            if [ "$name" = "hermes" ]; then
+                rsync -a --exclude="cache/*" --exclude="audio_cache/*" --exclude="sandbox_cache/*" --exclude="logs/*" \
+                    --exclude="state/*" --exclude="node/*" --exclude="hermes-agent/venv/*" \
+                    --exclude="*.sock" --exclude="*.pid" \
+                    "$path/" "$target_dir/ai/$name/$name/" 2>/dev/null || true
+            else
+                rsync -a --exclude="cache/*" --exclude="audio_cache/*" --exclude="sandbox_cache/*" --exclude="logs/*" \
+                    "$path" "$target_dir/ai/$name/" 2>/dev/null || true
+            fi
         fi
     done
 
