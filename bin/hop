@@ -94,7 +94,8 @@ run_backup() {
     timestamp="$(date +%Y%m%d_%H%M%S)"
     local bundle_name="distrohop_backup_${timestamp}"
     mkdir -p "$out_dir"
-    local temp_dir="${out_dir}/.tmp_${bundle_name}"
+    local temp_dir="$HOME/.cache/hopdis_staging/${bundle_name}"
+    rm -rf "$temp_dir"
     mkdir -p "$temp_dir"
 
     print_banner
