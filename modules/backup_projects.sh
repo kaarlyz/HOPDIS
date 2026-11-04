@@ -4,6 +4,7 @@
 
 export_projects_and_keys() {
     local target_dir="$1/projects_and_keys"
+    local force_all="$2"
     mkdir -p "$target_dir"
     local proj_dest="$target_dir/workspaces"
     mkdir -p "$proj_dest"
@@ -44,10 +45,13 @@ export_projects_and_keys() {
         
         local selected_projects=()
         for p in "${found_projects[@]}"; do
-            # Interaktif: Nanya user per project
-            read -p "      ? Backup project $(basename "$p")? (y/n) [n]: " user_choice
-            if [[ "$user_choice" =~ ^[Yy]$ ]]; then
+            if [ "$force_all" = "--all" ] || [ ! -t 0 ]; then
                 selected_projects+=("$p")
+            else
+                read -p "      ? Backup project $(basename "$p")? (y/n) [n]: " user_choice
+                if [[ "$user_choice" =~ ^[Yy]$ ]]; then
+                    selected_projects+=("$p")
+                fi
             fi
         done
 
