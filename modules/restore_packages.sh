@@ -127,11 +127,15 @@ except: pass
     fi
 
     echo "  [OK] Dependensi sistem, flatpak, npm globals, dan shell PATH tersinkronisasi."
+    bootstrap_hermes
 }
 
 # ─── HERMES AGENT AUTO-BOOTSTRAP ───
 bootstrap_hermes() {
     local hermes_dir="$HOME/.hermes/hermes-agent"
+    if [ ! -d "$hermes_dir" ] && [ -d "$HOME/hermes-agent" ]; then
+        hermes_dir="$HOME/hermes-agent"
+    fi
 
     if [ ! -d "$hermes_dir" ]; then
         echo "  [SKIP] Hermes Agent tidak ditemukan di $hermes_dir"

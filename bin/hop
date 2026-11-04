@@ -129,6 +129,18 @@ run_backup() {
         export_projects_and_keys "$temp_dir" || true
         echo -e "${C_YELLOW}│${C_RESET}    ${C_GREEN}✔ Kunci enkripsi, SSH, AI memory, dan tdata sesi tersalin utuh${C_RESET}"
     fi
+
+    # Simpan metadata sistem sumber untuk re-anchoring path
+    mkdir -p "$temp_dir/manifests"
+    cat <<EOF > "$temp_dir/manifests/source_meta.json"
+{
+  "user": "$USER",
+  "home": "$HOME",
+  "os_name": "$OS_NAME",
+  "os_family": "$OS_FAMILY",
+  "pkg_mgr": "$PKG_MGR"
+}
+EOF
     echo -e "${C_YELLOW}╰────────────────────────────────────────────────────────────────────╯${C_RESET}\n"
 
     echo -e "${C_PURPLE}${C_BOLD}╭─ 🗜️  [2/3] MENGOMPRES DATA KE ULTRA-FAST ZSTD...${C_RESET}"
@@ -214,7 +226,11 @@ run_restore() {
     echo -e "${C_CYAN}╰── ✔ Seluruh dependensi & toolchain siap.${C_RESET}\n"
 
     echo -e "${C_PURPLE}${C_BOLD}╭─ 🔄 [3/3] MEMULIHKAN PROFILE BROWSER, SESI CHAT, & AI AGENTS...${C_RESET}"
-    restore_all_sessions "$bundle_dir"
+    local old_home=""
+    if [ -f "$bundle_dir/manifests/source_meta.json" ]; then
+        old_home="$(grep -o '"home": *"[^"]*"' "$bundle_dir/manifests/source_meta.json" | cut -d'"' -f4)"
+    fi
+    restore_all_sessions "$bundle_dir" "$old_home"
     rm -rf "$temp_extract"
     echo -e "${C_PURPLE}╰── ✔ Sesi, perizinan kunci SSH, dan systemd services diaktifkan.${C_RESET}\n"
 

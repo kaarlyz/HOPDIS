@@ -3,6 +3,7 @@
 
 restore_all_sessions() {
     local bundle_dir="$1"
+    local old_home="$2"
 
     echo "=== [2/3] MEMULIHKAN PROFILE BROWSER, CHAT, DEV KEYS & AI STACK ==="
 
@@ -71,6 +72,9 @@ restore_all_sessions() {
         fi
         [ -f "$bundle_dir/sessions/dev/gitconfig/.gitconfig" ] && cp -a "$bundle_dir/sessions/dev/gitconfig/.gitconfig" "$HOME/.gitconfig"
         [ -f "$bundle_dir/sessions/dev/gitconfig" ] && cp -a "$bundle_dir/sessions/dev/gitconfig" "$HOME/.gitconfig"
+        if [ -n "$old_home" ] && [ "$old_home" != "$HOME" ] && [ -f "$HOME/.gitconfig" ]; then
+            sed -i "s|$old_home|$HOME|g" "$HOME/.gitconfig" 2>/dev/null || true
+        fi
         [ -d "$bundle_dir/sessions/dev/bun" ] && rsync -a "$bundle_dir/sessions/dev/bun/.bun/" "$HOME/.bun/" 2>/dev/null || true
         [ -d "$bundle_dir/sessions/dev/vscode_dot" ] && rsync -a "$bundle_dir/sessions/dev/vscode_dot/.vscode/" "$HOME/.vscode/" 2>/dev/null || true
         [ -d "$bundle_dir/sessions/dev/vscode_shared" ] && rsync -a "$bundle_dir/sessions/dev/vscode_shared/.vscode-shared/" "$HOME/.vscode-shared/" 2>/dev/null || true
@@ -92,6 +96,10 @@ restore_all_sessions() {
         if [ -d "$bundle_dir/sessions/system/systemd_user" ]; then
             mkdir -p "$HOME/.config/systemd/user"
             rsync -a "$bundle_dir/sessions/system/systemd_user/" "$HOME/.config/systemd/user/"
+            if [ -n "$old_home" ] && [ "$old_home" != "$HOME" ]; then
+                echo "  -> Menyesuaikan path username pada systemd services ($old_home -> $HOME)..."
+                find "$HOME/.config/systemd/user" -type f -name "*.service" -exec sed -i "s|$old_home|$HOME|g" {} + 2>/dev/null || true
+            fi
             systemctl --user daemon-reload 2>/dev/null || true
             for s in "$HOME/.config/systemd/user"/*.service; do
                 if [ -f "$s" ]; then
