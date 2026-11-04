@@ -93,13 +93,13 @@ run_backup() {
     local timestamp
     timestamp="$(date +%Y%m%d_%H%M%S)"
     local bundle_name="distrohop_backup_${timestamp}"
-    local temp_dir="/tmp/${bundle_name}"
+    mkdir -p "$out_dir"
+    local temp_dir="${out_dir}/.tmp_${bundle_name}"
+    mkdir -p "$temp_dir"
 
     print_banner
     echo -e "  ${C_BLUE}┌─ 💻 DISTRO AKTIF :${C_RESET} ${C_BOLD}$OS_NAME ($OS_FAMILY)${C_RESET}"
     echo -e "  ${C_BLUE}└─ 📦 PACKAGE MGR  :${C_RESET} ${C_BOLD}$PKG_MGR${C_RESET}\n"
-
-    mkdir -p "$temp_dir" "$out_dir"
 
     local selected_components
     if [ "$force_all" = "--all" ] || [ "$force_all" = "-a" ]; then
@@ -147,10 +147,10 @@ EOF
     local archive_path
     if command -v zstd >/dev/null 2>&1; then
         archive_path="${out_dir}/${bundle_name}.tar.zst"
-        tar -I 'zstd -19 -T0' -cf "$archive_path" -C "/tmp" "$bundle_name"
+        tar -I 'zstd -3 -T0' -cf "$archive_path" -C "$temp_dir" .
     else
         archive_path="${out_dir}/${bundle_name}.tar.gz"
-        tar -czf "$archive_path" -C "/tmp" "$bundle_name"
+        tar -czf "$archive_path" -C "$temp_dir" .
     fi
     rm -rf "$temp_dir"
     echo -e "${C_PURPLE}╰────────────────────────────────────────────────────────────────────╯${C_RESET}\n"
@@ -197,8 +197,8 @@ run_restore() {
     echo -e "  ${C_BLUE}┌─ 🎯 DISTRO TUJUAN :${C_RESET} ${C_BOLD}$OS_NAME ($OS_FAMILY)${C_RESET}"
     echo -e "  ${C_BLUE}└─ 📦 PACKAGE MGR   :${C_RESET} ${C_BOLD}$PKG_MGR${C_RESET}\n"
 
-    local temp_extract="/tmp/distrohop_restore_temp"
-    rm -rf "$temp_extract"
+    local temp_extract
+    temp_extract="$(mktemp -d -p "$HOME" .tmp_hop_restore_XXXXXX 2>/dev/null || mktemp -d)"
     mkdir -p "$temp_extract"
 
     echo -e "${C_YELLOW}${C_BOLD}╭─ 📂 [1/3] MENGEKSTRAK ARSIP CADANGAN...${C_RESET}"
