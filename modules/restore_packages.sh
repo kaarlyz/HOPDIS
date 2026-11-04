@@ -168,10 +168,8 @@ bootstrap_9router() {
 
 # ─── HERMES AGENT AUTO-BOOTSTRAP ───
 bootstrap_hermes() {
-    local hermes_dir="$HOME/.hermes/hermes-agent"
-    if [ ! -d "$hermes_dir" ] && [ -d "$HOME/hermes-agent" ]; then
-        hermes_dir="$HOME/hermes-agent"
-    fi
+    local hermes_dir="$HOME/hermes-agent"
+    [ ! -d "$hermes_dir" ] && hermes_dir="$HOME/.hermes/hermes-agent"
 
     if [ ! -d "$hermes_dir" ]; then
         echo "  [SKIP] Hermes Agent tidak ditemukan di $hermes_dir"
@@ -183,27 +181,33 @@ bootstrap_hermes() {
         return 0
     fi
 
-    if [ ! -f "$hermes_dir/pyproject.toml" ] && [ ! -f "$hermes_dir/uv.lock" ]; then
-        echo "  [SKIP] Tidak ditemukan pyproject.toml/uv.lock di Hermes."
-        return 0
-    fi
-
     echo "  -> Bootstrap ulang Hermes Agent environment dengan UV..."
     (
         cd "$hermes_dir" || return 1
+        # Bersihkan venv lama agar tidak crash akibat beda versi python/glibc
         rm -rf venv
         uv venv venv
-        uv sync
+        uv sync 2>/dev/null || true
         # Install hermes ke PATH
         if [ -f "pyproject.toml" ]; then
             uv pip install -e . --python venv/bin/python 2>/dev/null || true
         fi
     )
 
-    # Pastikan hermes binary linknya ada
-    if [ -f "$hermes_dir/venv/bin/hermes" ] && [ ! -f "$HOME/.local/bin/hermes" ]; then
-        mkdir -p "$HOME/.local/bin"
-        ln -sf "$hermes_dir/venv/bin/hermes" "$HOME/.local/bin/hermes"
+    # Pastikan hermes wrapper selalu valid dan point ke target path yang benar
+    mkdir -p "$HOME/.local/bin"
+    if [ -f "$hermes_dir/.hermes/bin/hermes" ]; then
+        cat <<EOF > "$HOME/.local/bin/hermes"
+#!/bin/sh
+exec "$hermes_dir/.hermes/bin/hermes" "\$@"
+EOF
+        chmod +x "$HOME/.local/bin/hermes"
+    elif [ -f "$hermes_dir/venv/bin/hermes" ]; then
+        cat <<EOF > "$HOME/.local/bin/hermes"
+#!/bin/sh
+exec "$hermes_dir/venv/bin/hermes" "\$@"
+EOF
+        chmod +x "$HOME/.local/bin/hermes"
     fi
 
     echo "  [OK] Hermes Agent environment berhasil di-bootstrap."

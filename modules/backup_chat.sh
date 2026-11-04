@@ -12,6 +12,7 @@ export_all_discovered_sessions() {
     # -------------------------------------------------------------
     local ai_targets=(
         "hermes:$HOME/.hermes"
+        "hermes_repo:$HOME/hermes-agent"
         "9router:$HOME/.9router"
         "opencode_config:$HOME/.config/opencode"
         "opencode_share:$HOME/.local/share/opencode"
@@ -41,6 +42,10 @@ export_all_discovered_sessions() {
                     --exclude="state/*" --exclude="node/*" --exclude="hermes-agent/venv/*" \
                     --exclude="*.sock" --exclude="*.pid" \
                     "$path/" "$target_dir/ai/$name/$name/" 2>/dev/null || true
+            elif [ "$name" = "hermes_repo" ]; then
+                rsync -a --exclude="venv/*" --exclude="node_modules/*" --exclude="*.log" \
+                    --exclude="__pycache__/*" --exclude="*.pyc" \
+                    "$path/" "$target_dir/ai/$name/hermes-agent/" 2>/dev/null || true
             else
                 rsync -a --exclude="cache/*" --exclude="audio_cache/*" --exclude="sandbox_cache/*" --exclude="logs/*" \
                     "$path" "$target_dir/ai/$name/" 2>/dev/null || true

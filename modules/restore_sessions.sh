@@ -37,6 +37,7 @@ restore_all_sessions() {
     if [ -d "$bundle_dir/sessions/ai" ]; then
         echo "  -> Memulihkan stack AI Agents (Hermes, 9Router, Antigravity, OpenCode)..."
         [ -d "$bundle_dir/sessions/ai/hermes" ] && rsync -a "$bundle_dir/sessions/ai/hermes/.hermes/" "$HOME/.hermes/" 2>/dev/null || true
+        [ -d "$bundle_dir/sessions/ai/hermes_repo/hermes-agent" ] && rsync -a "$bundle_dir/sessions/ai/hermes_repo/hermes-agent/" "$HOME/hermes-agent/" 2>/dev/null || true
         [ -d "$bundle_dir/sessions/ai/9router" ] && rsync -a "$bundle_dir/sessions/ai/9router/.9router/" "$HOME/.9router/" 2>/dev/null || true
         [ -d "$bundle_dir/sessions/ai/opencode_config" ] && rsync -a "$bundle_dir/sessions/ai/opencode_config/opencode/" "$HOME/.config/opencode/" 2>/dev/null || true
         [ -d "$bundle_dir/sessions/ai/opencode_share" ] && rsync -a "$bundle_dir/sessions/ai/opencode_share/opencode/" "$HOME/.local/share/opencode/" 2>/dev/null || true
@@ -91,6 +92,20 @@ restore_all_sessions() {
             # Jangan main rsync buta, abaikan symlink biar NPM global dan Agy gak rusak
             rsync -a --no-links "$bundle_dir/sessions/system/local_bin/" "$HOME/.local/bin/"
             chmod +x "$HOME/.local/bin"/* 2>/dev/null || true
+
+            # Re-anchor hardcoded shebang / home paths in all text script files in ~/.local/bin
+            if [ -n "$old_home" ] && [ "$old_home" != "$HOME" ]; then
+                echo "  -> Menyesuaikan path username pada script ~/.local/bin ($old_home -> $HOME)..."
+                for f in "$HOME/.local/bin"/*; do
+                    if [ -f "$f" ] && file "$f" 2>/dev/null | grep -qE "text|script"; then
+                        sed -i "s|$old_home|$HOME|g" "$f" 2>/dev/null || true
+                    fi
+                done
+            fi
+
+            # Pulihkan symlink penting AI CLI
+            [ -f "$HOME/.local/bin/gikano" ] && ln -sf "$HOME/.local/bin/gikano" "$HOME/.local/bin/aura" 2>/dev/null || true
+            [ -f "$HOME/.opencode/bin/opencode" ] && ln -sf "$HOME/.opencode/bin/opencode" "$HOME/.local/bin/opencode" 2>/dev/null || true
         fi
 
         if [ -d "$bundle_dir/sessions/system/systemd_user" ]; then
