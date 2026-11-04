@@ -128,6 +128,42 @@ except: pass
 
     echo "  [OK] Dependensi sistem, flatpak, npm globals, dan shell PATH tersinkronisasi."
     bootstrap_hermes
+    bootstrap_9router
+}
+
+# ─── 9ROUTER GATEWAY AUTO-INSTALL ───
+bootstrap_9router() {
+    local has_9router=false
+    if [ -f "$source_dir/ai_cli_tools.txt" ] && grep -q "^9router$" "$source_dir/ai_cli_tools.txt" 2>/dev/null; then
+        has_9router=true
+    elif [ -d "$HOME/.9router" ] || [ -f "$HOME/.config/systemd/user/9router.service" ]; then
+        has_9router=true
+    fi
+
+    if [ "$has_9router" = true ]; then
+        if ! command -v 9router >/dev/null 2>&1; then
+            echo "  -> 9Router terdeteksi. Menginstall binary 9router via npm..."
+            sudo npm install -g 9router 2>/dev/null || npm install -g --prefix "$HOME/.local" 9router 2>/dev/null || true
+        fi
+
+        # Validasi path di 9router.service
+        local s_file="$HOME/.config/systemd/user/9router.service"
+        if [ -f "$s_file" ]; then
+            local real_cli=""
+            if [ -f "/usr/lib/node_modules/9router/cli.js" ]; then
+                real_cli="/usr/lib/node_modules/9router/cli.js"
+            elif [ -f "$HOME/.local/lib/node_modules/9router/cli.js" ]; then
+                real_cli="$HOME/.local/lib/node_modules/9router/cli.js"
+            elif command -v 9router >/dev/null 2>&1; then
+                real_cli="$(command -v 9router)"
+            fi
+
+            if [ -n "$real_cli" ] && ! grep -q "$real_cli" "$s_file"; then
+                sed -i "s|/usr/lib/node_modules/9router/cli.js|$real_cli|g" "$s_file" 2>/dev/null || true
+            fi
+        fi
+        echo "  [OK] 9Router Gateway siap & tervalidasi."
+    fi
 }
 
 # ─── HERMES AGENT AUTO-BOOTSTRAP ───

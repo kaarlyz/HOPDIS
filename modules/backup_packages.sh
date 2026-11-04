@@ -44,5 +44,14 @@ export_packages() {
         uv tool list > "$target_dir/uv_tools.txt" 2>/dev/null || true
     fi
 
+    # 4. Global AI CLIs & Tooling
+    local ai_clis=()
+    command -v 9router >/dev/null 2>&1 && ai_clis+=("9router")
+    command -v opencode >/dev/null 2>&1 && ai_clis+=("opencode")
+    command -v antigravity >/dev/null 2>&1 && ai_clis+=("antigravity")
+    if [ ${#ai_clis[@]} -gt 0 ]; then
+        printf "%s\n" "${ai_clis[@]}" > "$target_dir/ai_cli_tools.txt"
+    fi
+
     echo "  [OK] Manifest tersimpan di $target_dir"
 }
